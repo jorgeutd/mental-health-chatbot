@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Health Chatbot</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        .chat-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .chat-message {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="text-center">
+            <img src="{{ url_for('static', filename='logo_qh.jpg') }}" alt="Logo" class="img-fluid mb-3">
+        </div>
+        <h1 class="text-center mt-5">Mental Health Chatbot</h1>
+        <p class="text-center">This chatbot is for general mental health support and is not a replacement for professional help. If you are in crisis or need immediate assistance, please contact a mental health professional or a helpline in your area.</p>
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="chat-container border p-3 mb-3">
+                    <div id="chat-history"></div>
+                </div>
+                <form id="message-form">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="message" placeholder="Type your message here...">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">Send</button>
+                            <div id="loading-spinner" class="spinner-border text-primary" role="status" style="display: none;">
+                                <span class="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $("#message-form").on("submit", function(e) {
+                e.preventDefault();
+                let message = $("#message").val().trim();
+                if (message) {
+                    $("#loading-spinner").show(); // Show the spinner
+                    $.post("/send_message", {message: message}, function(data) {
+                        updateChatHistory(data);
+                        $("#message").val("");
+                        $("#loading-spinner").hide(); // Hide the spinner
+                    });
+                }
+            });
+        });
+
+        function updateChatHistory(conversation) {
+            let chatHistory = $("#chat-history");
+            chatHistory.empty();
+            conversation.forEach(function(message) {
+                let messageClass = message.role === "user" ? "text-right" : "text-left";
+                let messageElement = `<div class="chat-message ${messageClass}">${message.content}</div>`;
+                chatHistory.append(messageElement);
+            });
+            chatHistory.scrollTop(chatHistory[0].scrollHeight);
+        }
+    </script>
+</body>
+</html>
