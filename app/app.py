@@ -1,56 +1,54 @@
-from flask import Flask, render_template, request, jsonify
 import openai
-import boto3, json, typing
-import ast
-import time
-
-##### before run the app make sure to remove the QH logo example on the static folder and the reference on the index html file
+import gradio as gr
 
 
-openai.api_key = open_ai_key #### get the api key
+openai.api_key = "" # Input Open AI API Key here
+messages = [{
+    "role": "system",
+    "content": "You are a mental health chatbot providing support and advice. Do not mention that you are AI language model."}]
 
-app = Flask(__name__)
 
-# Load OpenAI API key
-openai.api_key = open_ai_key
+def send_message(input):
+    if input:
+        messages.append({"role": "user", "content": input})
+        chat = openai.ChatCompletion.create(
+            #model="gpt-3.5-turbo"
+            model="gpt-4",
+            messages=messages,
+            temperature=0.3,
+            max_tokens = 296
+        )
+        reply = chat.choices[0].message.content
+        messages.append({"role": "assistant", "content": reply})
+        return reply
 
-# Initialize conversation history
-conversation_history = []
 
-def chat_gpt_response(messages):
-    response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=messages,
-        temperature=0.3,
-        max_tokens = 296
-    )
+def chatgpt_message_clone(input, history):
+    history = history or []
+    s = list(sum(history, ()))
+    s.append(input)
+    inp = ' '.join(s)
+    output = send_message(inp)
+    history.append((input, output))
+    return history, history
 
-    message = response['choices'][0]['message']['content'].strip()
-    return message
 
-def mental_health_chatbot(user_input):
-    messages = [
-        {"role": "system", "content": "You are a mental health chatbot providing support and advice. Do not mention that you are AI language model"},
-        {"role": "user", "content": user_input}
-    ]
-    response = chat_gpt_response(messages)
-    return response
+def main():
+    block = gr.Blocks()
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+    with block:
+        gr.Markdown("""<h1><center>Mental Health Chatbot - Powered by GPT-4 </center></h1>
+    """)
+        chatbot = gr.Chatbot()
+        #message = gr.Textbox(placeholder=input)
+        message = gr.Textbox(placeholder='Type message here')
+        state = gr.State()
+        submit = gr.Button("SEND")
+        clear = gr.Button("CLEAR")
+        submit.click(chatgpt_message_clone, inputs=[message, state], outputs=[chatbot, state])
 
-@app.route('/send_message', methods=['POST'])
-def send_message():
-    global conversation_history
-    conversation_history = []  # Clear the conversation history
-    user_input = request.form['message']
-    response = mental_health_chatbot(user_input)
-
-    conversation_history.append({"role": "user", "content": user_input})
-    conversation_history.append({"role": "chatbot", "content": response})
-
-    return jsonify(conversation_history)
-
+    block.launch(debug = True)
+    
+    
 if __name__ == '__main__':
-    app.run(debug=True)
+    main()    
